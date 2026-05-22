@@ -30,6 +30,12 @@ async function run() {
             res.send(result)
         })
 
+        // get all pets
+        app.get('/all-pets', async(req, res) => {
+            const cursor = await petsCollection.find().toArray();
+            res.json(cursor);
+        })
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
