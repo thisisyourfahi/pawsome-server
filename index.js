@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI
 const port = 5555
@@ -34,6 +34,13 @@ async function run() {
         app.get('/all-pets', async(req, res) => {
             const cursor = await petsCollection.find().toArray();
             res.json(cursor);
+        })
+
+        // get a single pet with id
+        app.get('/all-pets/:id', async (req, res) => {
+            const id = req.params.id
+            const serverResponse = await petsCollection.findOne({_id: new ObjectId(id)})
+            res.json(serverResponse)
         })
 
         await client.db("admin").command({ ping: 1 });
