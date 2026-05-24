@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-const uri = process.env.MONGODB_URI
+const uri = process.env.MONGO_URI
 const port = 5555
 
 const app = express();
@@ -31,16 +31,34 @@ async function run() {
         })
 
         // get all pets
-        app.get('/all-pets', async(req, res) => {
+        app.get('/all-pets', async (req, res) => {
             const cursor = await petsCollection.find().toArray();
+            res.json(cursor);
+        })
+
+        // get all pets of a particualr user
+        app.get('/dashboard/my-listings/:id', async (req, res) => {
+            const userId = req.params.id;
+            const query = {
+                ownderId: userId
+            }
+            const cursor = await petsCollection.find(query).toArray();
             res.json(cursor);
         })
 
         // get a single pet with id
         app.get('/all-pets/:id', async (req, res) => {
             const id = req.params.id
-            const serverResponse = await petsCollection.findOne({_id: new ObjectId(id)})
+            const serverResponse = await petsCollection.findOne({ _id: new ObjectId(id) })
             res.json(serverResponse)
+        })
+
+        // update a pet
+        app.patch('/update-pet/:id', async (req, res) => {
+            const id = req.params.id
+            const petInfo = req.body;
+            const result = await petsCollection.updateOne({_id: new ObjectId(id)}, { $set: petInfo})
+            res.json(result);
         })
 
         await client.db("admin").command({ ping: 1 });
