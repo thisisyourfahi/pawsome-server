@@ -22,6 +22,14 @@ async function run() {
         await client.connect();
         const db = client.db('pawsome_db')
         const petsCollection = db.collection('pets')
+        const adoptionsCollection = db.collection('adoptions')
+
+        // add adoption 
+        app.post('/add-adoption', async (req, res) => {
+            const adoptionInfo = req.body;
+            const result = await adoptionsCollection.insertOne(adoptionInfo);
+            res.send(result);
+        })
 
         // add pet
         app.post('/add-pet', async (req, res) => {
