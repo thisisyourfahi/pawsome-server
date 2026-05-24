@@ -31,6 +31,13 @@ async function run() {
             res.send(result);
         })
 
+        // get all adoption request made by a user
+        app.get('/dashboard/my-requests/:id', async (req, res) => {
+            const applicantId = req.params.id;
+            const cursor = await adoptionsCollection.find({applicantId: applicantId}).toArray();
+            res.json(cursor);
+        })
+
         // add pet
         app.post('/add-pet', async (req, res) => {
             const petInfo = req.body;
