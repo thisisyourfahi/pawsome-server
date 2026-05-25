@@ -38,6 +38,28 @@ async function run() {
             res.json(cursor);
         })
 
+        // get all adoption request of a users listings
+        app.get('/dashboard/adoption-requests/:id', async(req, res) => {
+            const ownderId = req.params.id;
+            const cursor = await adoptionsCollection.find({ownerId: ownderId}).toArray();
+            res.json(cursor);
+        })
+
+        // accept adoption request
+        app.patch('/dashboard/adoption-requests/accept/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log('user wants to accept adoption request. ID:', id);
+            const result = await adoptionsCollection.updateOne({_id: new ObjectId(id)}, {$set: {status: 'Accepted'}})
+            res.json(result);
+        })
+
+        // delete an adoption
+        app.delete('/dashboard/my-requests/delete/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await adoptionsCollection.deleteOne({_id: new ObjectId(id)});
+            res.json(result);
+        })
+
         // add pet
         app.post('/add-pet', async (req, res) => {
             const petInfo = req.body;
