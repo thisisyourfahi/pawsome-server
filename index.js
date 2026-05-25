@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 
 const uri = process.env.MONGO_URI
 const port = 5555
@@ -17,6 +18,31 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+const JWKS = createRemoteJWKSet(
+    new URL('http://localhost:3000/api/auth/jwks')
+)
+
+const varifyToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Unauthorized' })
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized' })
+    }
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        console.log(payload);
+        next()
+    } catch (error) {
+        return res.status(403).json({ message: 'Forbiddenb' })
+    }
+    // console.log(token);
+}
+
 async function run() {
     try {
         await client.connect();
@@ -34,14 +60,14 @@ async function run() {
         // get all adoption request made by a user
         app.get('/dashboard/my-requests/:id', async (req, res) => {
             const applicantId = req.params.id;
-            const cursor = await adoptionsCollection.find({applicantId: applicantId}).toArray();
+            const cursor = await adoptionsCollection.find({ applicantId: applicantId }).toArray();
             res.json(cursor);
         })
 
         // get all adoption request of a users listings
-        app.get('/dashboard/adoption-requests/:id', async(req, res) => {
+        app.get('/dashboard/adoption-requests/:id', async (req, res) => {
             const ownderId = req.params.id;
-            const cursor = await adoptionsCollection.find({ownerId: ownderId}).toArray();
+            const cursor = await adoptionsCollection.find({ ownerId: ownderId }).toArray();
             res.json(cursor);
         })
 
@@ -49,14 +75,25 @@ async function run() {
         app.patch('/dashboard/adoption-requests/accept/:id', async (req, res) => {
             const id = req.params.id;
             console.log('user wants to accept adoption request. ID:', id);
-            const result = await adoptionsCollection.updateOne({_id: new ObjectId(id)}, {$set: {status: 'Accepted'}})
+            const result = await adoptionsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status: 'Accepted' } })
+            res.json(result);
+        })
+
+        // reject adoption request
+        app.patch('/dashboard/adoption-requests/reject/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await adoptionsCollection.updateOne({ _id: new ObjectId(id) }, {
+                $set: {
+                    status: 'Rejected'
+                }
+            })
             res.json(result);
         })
 
         // delete an adoption
         app.delete('/dashboard/my-requests/delete/:id', async (req, res) => {
             const id = req.params.id;
-            const result = await adoptionsCollection.deleteOne({_id: new ObjectId(id)});
+            const result = await adoptionsCollection.deleteOne({ _id: new ObjectId(id) });
             res.json(result);
         })
 
@@ -84,7 +121,7 @@ async function run() {
         })
 
         // get a single pet with id
-        app.get('/all-pets/:id', async (req, res) => {
+        app.get('/all-pets/:id', varifyToken, async (req, res) => {
             const id = req.params.id
             const serverResponse = await petsCollection.findOne({ _id: new ObjectId(id) })
             res.json(serverResponse)
@@ -94,7 +131,7 @@ async function run() {
         app.patch('/update-pet/:id', async (req, res) => {
             const id = req.params.id
             const petInfo = req.body;
-            const result = await petsCollection.updateOne({_id: new ObjectId(id)}, { $set: petInfo})
+            const result = await petsCollection.updateOne({ _id: new ObjectId(id) }, { $set: petInfo })
             res.json(result);
         })
 
@@ -102,7 +139,7 @@ async function run() {
         app.delete('/delete/:id', async (req, res) => {
             const id = req.params.id
             console.log('user wants to delete:', id);
-            const result = await petsCollection.deleteOne({_id : new ObjectId(id)});
+            const result = await petsCollection.deleteOne({ _id: new ObjectId(id) });
             res.json(result);
         })
 
