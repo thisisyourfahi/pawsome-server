@@ -20,7 +20,7 @@ const client = new MongoClient(uri, {
 });
 
 const JWKS = createRemoteJWKSet(
-    new URL('http://localhost:3000/api/auth/jwks')
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
 )
 
 const varifyToken = async (req, res, next) => {
@@ -35,7 +35,6 @@ const varifyToken = async (req, res, next) => {
 
     try {
         const { payload } = await jwtVerify(token, JWKS)
-        console.log(payload);
         next()
     } catch (error) {
         return res.status(403).json({ message: 'Forbiddenb' })
@@ -45,7 +44,7 @@ const varifyToken = async (req, res, next) => {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         const db = client.db('pawsome_db')
         const petsCollection = db.collection('pets')
         const adoptionsCollection = db.collection('adoptions')
@@ -72,9 +71,10 @@ async function run() {
         })
 
         // accept adoption request
-        app.patch('/dashboard/adoption-requests/accept/:id', async (req, res) => {
+        app.patch('/dashboard/adoption-requests/accept/:id/:petId', async (req, res) => {
             const id = req.params.id;
-            console.log('user wants to accept adoption request. ID:', id);
+            const petId = req.params.petId;
+            const r = await petsCollection.updateOne({_id: new ObjectId(petId)}, { $set: {adoption: 'Adopted'}})
             const result = await adoptionsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status: 'Accepted' } })
             res.json(result);
         })
@@ -100,8 +100,9 @@ async function run() {
         // add pet
         app.post('/add-pet', async (req, res) => {
             const petInfo = req.body;
+            console.log('user wants to add a pet:', petInfo)
             const result = await petsCollection.insertOne(petInfo);
-            res.send(result)
+            res.json(result)
         })
 
         // get all pets
@@ -128,7 +129,7 @@ async function run() {
         })
 
         // update a pet
-        app.patch('/update-pet/:id', async (req, res) => {
+        app.patch('/update-pet/:id', varifyToken, async (req, res) => {
             const id = req.params.id
             const petInfo = req.body;
             const result = await petsCollection.updateOne({ _id: new ObjectId(id) }, { $set: petInfo })
@@ -143,7 +144,7 @@ async function run() {
             res.json(result);
         })
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // await client.close();
@@ -151,11 +152,16 @@ async function run() {
 }
 run().catch(console.dir);
 
-
 app.get('/', (req, res) => {
     res.send('pawsome-server is running!');
 })
 
-app.listen(port, () => {
-    console.log(`click: http://localhost:${port}`);
-})
+// For local development only
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`click: http://localhost:${port}`);
+    })
+}
+
+// Export for Vercel serverless
+module.exports = app;
