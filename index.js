@@ -48,6 +48,7 @@ async function run() {
         const db = client.db('pawsome_db')
         const petsCollection = db.collection('pets')
         const adoptionsCollection = db.collection('adoptions')
+        const users = db.collection('user');
 
         // add adoption 
         app.post('/add-adoption', async (req, res) => {
@@ -141,6 +142,13 @@ async function run() {
             const id = req.params.id
             console.log('user wants to delete:', id);
             const result = await petsCollection.deleteOne({ _id: new ObjectId(id) });
+            res.json(result);
+        })
+
+        // get a single user
+        app.get('/user/:id', async(req, res) => {
+            const id = req.params.id;
+            const result = await users.findOne({_id: new ObjectId(id)});
             res.json(result);
         })
 
