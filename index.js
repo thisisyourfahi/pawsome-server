@@ -58,14 +58,14 @@ async function run() {
         })
 
         // get all adoption request made by a user
-        app.get('/dashboard/my-requests/:id', async (req, res) => {
+        app.get('/dashboard/my-requests/:id', varifyToken, async (req, res) => {
             const applicantId = req.params.id;
             const cursor = await adoptionsCollection.find({ applicantId: applicantId }).toArray();
             res.json(cursor);
         })
 
         // get all adoption request of a users listings
-        app.get('/dashboard/adoption-requests/:id', async (req, res) => {
+        app.get('/dashboard/adoption-requests/:id', varifyToken, async (req, res) => {
             const ownderId = req.params.id;
             const cursor = await adoptionsCollection.find({ ownerId: ownderId }).toArray();
             res.json(cursor);
@@ -113,7 +113,7 @@ async function run() {
         })
 
         // get all pets of a particualr user
-        app.get('/dashboard/my-listings/:id', async (req, res) => {
+        app.get('/dashboard/my-listings/:id', varifyToken, async (req, res) => {
             const userId = req.params.id;
             const query = {
                 ownderId: userId
